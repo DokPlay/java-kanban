@@ -1,14 +1,18 @@
+package manager;
+
+import model.*;
+
 import java.util.*;
 
- // Менеджер задач. Хранит задачи всех трёх типов и выполняет основные операции,описанные в техническом задании.
+// Менеджер задач. Хранит задачи всех трёх типов и выполняет основные операции, описанные в техническом задании.
+
 public class TaskManager {
     // Отдельные таблицы под разные типы задач — упрощает выборку.
     private final Map<Integer, Task> tasks = new HashMap<>();
     private final Map<Integer, Epic> epics = new HashMap<>();
     private final Map<Integer, Subtask> subtasks = new HashMap<>();
 
-    private int nextId = 1; // генератор идентификаторов
-
+    private int nextId = 1;// генератор идентификаторов
     // === Служебные методы ===
     private int generateId() {
         return nextId++;
@@ -17,7 +21,7 @@ public class TaskManager {
     private void updateEpicStatus(Epic epic) {
         List<Integer> ids = epic.getSubtaskIds();
         if (ids.isEmpty()) {
-            epic.setStatus(Status.NEW);
+            epic.forceSetStatus(Status.NEW);
             return;
         }
 
@@ -26,20 +30,16 @@ public class TaskManager {
 
         for (int id : ids) {
             Status st = subtasks.get(id).getStatus();
-            if (st != Status.NEW) {
-                allNew = false;
-            }
-            if (st != Status.DONE) {
-                allDone = false;
-            }
+            if (st != Status.NEW) allNew = false;
+            if (st != Status.DONE) allDone = false;
         }
 
         if (allDone) {
-            epic.setStatus(Status.DONE);
+            epic.forceSetStatus(Status.DONE);
         } else if (allNew) {
-            epic.setStatus(Status.NEW);
+            epic.forceSetStatus(Status.NEW);
         } else {
-            epic.setStatus(Status.IN_PROGRESS);
+            epic.forceSetStatus(Status.IN_PROGRESS);
         }
     }
 
@@ -77,12 +77,7 @@ public class TaskManager {
     }
 
     public void deleteAllEpics() {
-        // При удалении эпиков удаляем и их подзадачи
-        for (Epic epic : epics.values()) {
-            for (int subId : epic.getSubtaskIds()) {
-                subtasks.remove(subId);
-            }
-        }
+        subtasks.clear();                            // Все подзадачи можно удалить сразу
         epics.clear();
     }
 
@@ -101,8 +96,7 @@ public class TaskManager {
             Epic storedEpic = epics.get(epic.getId());
             storedEpic.setName(epic.getName());
             storedEpic.setDescription(epic.getDescription());
-            // статус рассчитывается автоматически
-            updateEpicStatus(storedEpic);
+            updateEpicStatus(storedEpic); // пересчёт статуса
         }
     }
 
@@ -123,7 +117,7 @@ public class TaskManager {
     public void deleteAllSubtasks() {
         // Чистим списки подзадач у эпиков
         for (Epic epic : epics.values()) {
-            epic.getSubtaskIds().clear();
+            epic.clearSubtaskIds();
             updateEpicStatus(epic);
         }
         subtasks.clear();
@@ -141,7 +135,7 @@ public class TaskManager {
         subtask.setId(generateId());
         subtasks.put(subtask.getId(), subtask);
         Epic epic = epics.get(subtask.getEpicId());
-        epic.getSubtaskIds().add(subtask.getId());
+        epic.addSubtaskId(subtask.getId());
         updateEpicStatus(epic);
     }
 
@@ -160,7 +154,7 @@ public class TaskManager {
         Subtask subtask = subtasks.remove(id);
         if (subtask != null) {
             Epic epic = epics.get(subtask.getEpicId());
-            epic.getSubtaskIds().remove(Integer.valueOf(id));
+            epic.removeSubtaskId(id);
             updateEpicStatus(epic);
         }
     }

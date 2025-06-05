@@ -1,8 +1,10 @@
+package model;
+
 public class Task {
     private int id;
     private String name;
     private String description;
-    private Status status;
+    protected Status status;
 
     public Task(String name, String description) {
         this.name = name;
@@ -10,12 +12,6 @@ public class Task {
         this.status = Status.NEW; // статус по умолчанию
     }
 
-    public Task(int id, String name, String description, Status status) {
-        this.id = id;
-        this.name = name;
-        this.description = description;
-        this.status = status;
-    }
 
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }

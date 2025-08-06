@@ -18,9 +18,12 @@ public interface TaskManager {
     void updateSubtask(Subtask subtask);
 
     //Удаление задач всех типов
+    
     void removeTask(int id);
     void removeEpic(int id);
     void removeSubtask(int id);
+
+    /* ─── получение ─── */
 
     Task getTask(int id);
     Epic getEpic(int id);
@@ -31,5 +34,7 @@ public interface TaskManager {
     List<Subtask> getSubtasks();
     List<Subtask> getEpicSubtasks(int epicId);
 
+    /* ─── история ─── */
+    
     List<Task> getHistory();
 }

@@ -1,29 +1,43 @@
 ### IntelliJ IDEA ###
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
+# Игнорируем всё содержимое .idea — это папка настроек среды разработки
+# Оставляем только нужные файлы, чтобы IDE могла корректно открыть проект
+.idea/
+!.idea/misc.xml           # Уровень JDK, базовые настройки проекта
+!.idea/modules.xml        # Структура модулей (если нет Maven/Gradle)
+!.idea/libraries/         # Подключённые библиотеки, например JUnit
+!.idea/vcs.xml            # Настройки системы контроля версий (Git)
 
-### Eclipse ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
+# Игнорируем файлы модулей IntelliJ (.iml) — не нужны в репозитории
+*.iml
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+### Build output ###
+# Исключаем папки, которые содержат скомпилированные классы и артефакты
+out/                      # Папка вывода сборки IntelliJ
+bin/                      # Папка вывода Eclipse/ручной сборки
+target/                   # Папка сборки Maven (если появится)
+
+### OS ###
+# Системные файлы macOS, не должны попадать в репозиторий
+.DS_Store
 
 ### VS Code ###
+# Конфигурации Visual Studio Code (если кто-то откроет проект там)
 .vscode/
 
-### Mac OS ###
-.DS_Store
+### Eclipse ###
+# Игнорируем все файлы и папки, связанные с Eclipse IDE
+.apt_generated            # Автоматически сгенерированные исходники
+.classpath                # Файл конфигурации путей классов
+.factorypath              # Конфигурация аннотаций
+.project                  # Основной файл проекта Eclipse
+.settings                 # Папка с настройками проекта
+.springBeans              # Конфиги Spring Beans (если используется)
+.sts4-cache               # Кэш Spring Tool Suite (STS)
+
+### NetBeans ###
+# Всё, что создаёт NetBeans IDE
+nbproject/private/        # Личные настройки проекта
+nbbuild/                  # Папка сборки NetBeans
+dist/                     # Артефакты сборки (JAR и т.д.)
+nbdist/                   # Расширенная папка вывода
+.nb-gradle/               # Кэш Gradle от NetBeans

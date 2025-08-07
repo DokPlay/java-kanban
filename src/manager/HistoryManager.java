@@ -1,9 +1,10 @@
 package manager;
-//Интерфейс менеджера истории просмотров задач.
+
 import model.Task;
 import java.util.List;
 
 public interface HistoryManager {
-    void add(Task task);
-    List<Task> getHistory();
+    void add(Task task);    // записать просмотр
+    void remove(int id);    // удалить по id (нужно при удалении задач)
+    List<Task> getHistory();// вернуть историю в порядке просмотра
 }

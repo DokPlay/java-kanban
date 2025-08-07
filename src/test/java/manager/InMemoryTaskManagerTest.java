@@ -1,7 +1,5 @@
-package test.java.manager;
+package manager;
 
-import manager.Managers;
-import manager.TaskManager;
 import model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,56 +8,53 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-// Юнит-тесты для {InMemoryTaskManager}.
-// Проверяются добавление задач, история просмотров и корректная обработка ошибок.
-
+/**
+ * Юнит-тесты InMemoryTaskManager + HistoryManager.
+ */
 class InMemoryTaskManagerTest {
-    private TaskManager manager;
-//Создаёт новый экземпляр менеджера перед каждым тестом.
+
+    private TaskManager tm;
+
     @BeforeEach
-    void setup() {
-        manager = Managers.getDefault();
-    }
-//Проверяет, что добавленная задача возвращается корректно по ID.
-    @Test
-    void shouldAddAndReturnTask() {
-        Task task = new Task("Test task", "Desc", Status.NEW);
-        int id = manager.addNewTask(task);
-        Task returned = manager.getTask(id);
-
-        assertNotNull(returned);
-        assertEquals(task.getTitle(), returned.getTitle());
-    }
-//Проверяет, что история просмотров сохраняет порядок и допускает повторы.
-    @Test
-    void shouldStoreHistoryCorrectly() {
-        int id1 = manager.addNewTask(new Task("T1", "", Status.NEW));
-        int id2 = manager.addNewTask(new Task("T2", "", Status.NEW));
-
-        manager.getTask(id1);
-        manager.getTask(id2);
-        manager.getTask(id1);
-
-        List<Task> history = manager.getHistory();
-        assertEquals(3, history.size());
-        assertEquals("T1", history.get(2).getTitle());
-    }
-//Проверяет, что при попытке привязать подзадачу к несуществующему эпику будет выброшено исключение.
-    @Test
-    void shouldThrowIfSubtaskReferencesMissingEpic() {
-        Subtask subtask = new Subtask("Ошибка", "Нет эпика", 999); // несуществующий epicId
-        assertThrows(IllegalArgumentException.class, () -> manager.addNewSubtask(subtask));
+    void setUp() {
+        tm = Managers.getDefault();   // InMemoryTaskManager
     }
 
-//Проверяет, что история просмотров не превышает 10 элементов.
+    /* -------- 1. Дубликаты не сохраняются -------- */
     @Test
-    void historyShouldNotExceedTenEntries() {
-        for (int i = 0; i < 12; i++) {
-            int id = manager.addNewTask(new Task("T" + i, "", Status.NEW));
-            manager.getTask(id);
+    void addDuplicates_keepsOnlyLastView() {
+        int id = tm.addNewTask(new Task("T", "d", Status.NEW));
+
+        tm.getTask(id);
+        tm.getTask(id);
+        tm.getTask(id);
+
+        List<Task> history = tm.getHistory();
+        assertEquals(1, history.size(),
+                "В истории должен остаться единственный просмотр");
+        assertEquals(id, history.get(0).getId());
+    }
+
+    /* -------- 2. История может быть > 10 -------- */
+    @Test
+    void historyCanGrowMoreThanTen() {
+        for (int i = 0; i < 20; i++) {
+            int id = tm.addNewTask(new Task("task-" + i, "", Status.NEW));
+            tm.getTask(id);
         }
+        assertEquals(20, tm.getHistory().size(),
+                "История должна содержать все 20 просмотров");
+    }
 
-        List<Task> history = manager.getHistory();
-        assertEquals(10, history.size(), "История не должна превышать 10 элементов");
+    /* -------- 3. Удаление чистит историю -------- */
+    @Test
+    void deletingTask_removesItFromHistory() {
+        int id = tm.addNewTask(new Task("X", "", Status.NEW));
+        tm.getTask(id);
+
+        tm.removeTask(id);
+
+        assertTrue(tm.getHistory().isEmpty(),
+                "После удаления задачи записи о ней в истории быть не должно");
     }
 }

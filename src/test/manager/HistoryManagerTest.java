@@ -1,4 +1,4 @@
-package test.java.manager;
+package manager;
 
 import manager.HistoryManager;
 import manager.Managers;

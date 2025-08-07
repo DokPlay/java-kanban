@@ -2,24 +2,29 @@ package model;
 
 import java.util.ArrayList;
 import java.util.List;
-//Класс Epic представляет эпик — задачу, содержащую список подзадач.
-// * Наследуется от Task и содержит список идентификаторов всех подзадач.
+
+/** Эпик — агрегирующая задача, содержит список id подзадач. */
 public class Epic extends Task {
+
     private final List<Integer> subtaskIds = new ArrayList<>();
 
     public Epic(String title, String description) {
         super(title, description, Status.NEW);
     }
-//Защищает subtaskIds от внешнего изменения — инкапсуляция.
-//Возвращает копию списка идентификаторов подзадач.
-  //   * Это нужно для соблюдения принципа инкапсуляции —
-    //        * чтобы внешний код не мог напрямую изменить внутренний список.
+
+    /*--------------- новый метод ---------------*/
+    @Override
+    public TaskType getType() {
+        return TaskType.EPIC;
+    }
+    /*-------------------------------------------*/
+
+    /** Возвращает копию списка id подзадач (инкапсуляция). */
     public List<Integer> getSubtaskIds() {
-        return new ArrayList<>(subtaskIds); // ✅ ВОТ ТАК инкапсуляция соблюдена
+        return new ArrayList<>(subtaskIds);
     }
 
-//Добавляет идентификатор подзадачи к эпику.
-//* Проверяет, что эпик не добавляет сам себя как подзадачу.
+    /** Добавляет id подзадачи к эпику. */
     public void addSubtaskId(int id) {
         if (id == this.id) {
             throw new IllegalArgumentException("Эпик не может быть собственным сабтаском");

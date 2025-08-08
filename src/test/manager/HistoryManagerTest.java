@@ -1,7 +1,6 @@
 package manager;
 
-import manager.HistoryManager;
-import manager.Managers;
+
 import model.Task;
 import model.Status;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,7 +11,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- *  Юнит-тесты самого HistoryManager
+ *  Unit-тесты самого HistoryManager
  */
 class HistoryManagerTest {
 
@@ -27,12 +26,12 @@ class HistoryManagerTest {
         hm = Managers.getDefaultHistory();     // или new InMemoryHistoryManager()
 
         //   id задаём вручную, чтобы HistoryManager.remove(id) работал корректно
-        t1 = new Task("T-1", "descr1", Status.NEW); t1.setId(1);
-        t2 = new Task("T-2", "descr2", Status.NEW); t2.setId(2);
-        t3 = new Task("T-3", "descr3", Status.NEW); t3.setId(3);
+        t1 = new Task("T-1", "description1", Status.NEW); t1.setId(1);
+        t2 = new Task("T-2", "description2", Status.NEW); t2.setId(2);
+        t3 = new Task("T-3", "description3", Status.NEW); t3.setId(3);
     }
 
-    /** add(): без дубликатов, последний просмотр переносится в конец */
+    /** Add(): без дубликатов, последний просмотр переносится в конец */
     @Test
     void add_movesTaskToTail_withoutDuplicates() {
         hm.add(t1);
@@ -45,7 +44,7 @@ class HistoryManagerTest {
                 "Повторный просмотр должен перемещать задачу в конец истории без дублирования");
     }
 
-    /** remove(): удаляет узел из середины за O(1) */
+    /** Remove(): удаляет узел из середины за O(1) */
     @Test
     void remove_deletesNodeFromAnyPosition() {
         hm.add(t1);

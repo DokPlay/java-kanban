@@ -11,14 +11,24 @@ public class Subtask extends Task {
         this.epicId = epicId;
     }
 
-    /*--------------- новое ----------------*/
     @Override
     public TaskType getType() {
         return TaskType.SUBTASK;
     }
-    /*--------------------------------------*/
 
     public int getEpicId() {
         return epicId;
+    }
+
+    @Override
+    public String toCsvRow() {
+        return String.join(",",
+                String.valueOf(id),
+                getType().name(),
+                title,
+                status.name(),
+                description,
+                String.valueOf(epicId)
+        );
     }
 }

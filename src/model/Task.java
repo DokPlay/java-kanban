@@ -4,42 +4,71 @@ import java.util.Objects;
 
 /** Базовая задача. */
 public class Task {
-    /* поля -------------------------------------------------------- */
     protected String title;
     protected String description;
-    protected int     id;
-    protected Status  status;
+    protected int id;
+    protected Status status;
 
-    /* конструктор ------------------------------------------------- */
     public Task(String title, String description, Status status) {
-        this.title       = title;
+        this.title = title;
         this.description = description;
-        this.status      = status;
+        this.status = status;
     }
 
-    /* тип задачи -------------------------------------------------- */
-    public TaskType getType() {       // нужен сериализации
+    /** Тип задачи. */
+    public TaskType getType() {
         return TaskType.TASK;
     }
 
-    /* геттеры / сеттеры ------------------------------------------ */
-    public int     getId()          { return id; }
-    public void    setId(int id)    { this.id = id; }
+    /* ========= геттеры/сеттеры ========= */
 
-    public String  getTitle()       { return title; }
+    public int getId() {
+        return id;
+    }
 
-    public String  getDescription() { return description; }   // ← новый геттер
+    public void setId(int id) {
+        this.id = id;
+    }
 
-    public Status  getStatus()      { return status; }
-    public void    setStatus(Status status) { this.status = status; }
+    public String getTitle() {
+        return title;
+    }
 
-    /* equals / hashCode / toString ------------------------------- */
+    public String getDescription() {
+        return description;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public void setStatus(Status status) {
+        this.status = status;
+    }
+
+    /* ========= CSV-представление (для FileBackedTaskManager) ========= */
+    public String toCsvRow() {
+        // у обычной задачи поле epic пустое
+        return String.join(",",
+                String.valueOf(getId()),
+                getType().name(),
+                getTitle(),
+                getStatus().name(),
+                getDescription(),
+                ""
+        );
+    }
+
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Task)) return false;
-        Task task = (Task) o;
-        return id == task.id;
+        if (this == o) {
+            return true;
+        }
+        // pattern matching TODO: —  убирает предупреждение «Variable 'task' can be replaced with pattern variable»
+        if (!(o instanceof Task other)) {
+            return false;
+        }
+        return id == other.id;
     }
 
     @Override

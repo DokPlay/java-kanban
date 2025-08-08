@@ -1,41 +1,29 @@
-/out/
-/tasks.csv
-### IntelliJ IDEA ###
-# По умолчанию игнорируем всю .idea (локальные настройки)
+# ===== Build output / compiled =====
+out/
+bin/
+build/
+target/
+*.class
+
+# ===== App data created by FileBackedTaskManager =====
+tasks.csv
+
+# ===== IntelliJ IDEA =====
 .idea/
-
-# Разрешаем только минимально нужные файлы проекта
-!.idea/misc.xml          # JDK / базовые настройки
-!.idea/modules.xml       # Структура модулей
-!.idea/vcs.xml           # Настройки VCS (Git)
-# ВАЖНО: .idea/libraries НЕ коммитим, чтобы не тянуть локальные JUnit и т.п.
-# (Если осознанно нужно шарить библиотеки — раскомментируй следующую строку)
-# !.idea/libraries/
-
-# Файлы модулей IntelliJ коммитить не надо
+!.idea/misc.xml
+!.idea/modules.xml
+!.idea/vcs.xml
+# !.idea/libraries/   # надо включать только осознанно
 *.iml
 
-### Build output / compiled ###
-out/                     # IntelliJ build output
-bin/                     # Eclipse/ручная сборка
-build/                   # Gradle build (на будущее)
-target/                  # Maven build (на будущее)
-*.class                  # Скомпилированные классы
-
-### Локальные файлы/логи ###
-tasks.csv                # Файл автосохранения менеджера
-*.log
-hs_err_pid*
-replay_pid*
-
-### OS ###
-.DS_Store                # macOS
-Thumbs.db                # Windows
-
-### VS Code ###
+# ===== VS Code =====
 .vscode/
 
-### Eclipse ###
+# ===== OS junk =====
+.DS_Store
+Thumbs.db
+
+# ===== Eclipse =====
 .apt_generated
 .classpath
 .factorypath
@@ -44,7 +32,7 @@ Thumbs.db                # Windows
 .springBeans
 .sts4-cache
 
-### NetBeans ###
+# ===== NetBeans =====
 nbproject/private/
 nbbuild/
 dist/

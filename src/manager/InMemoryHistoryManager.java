@@ -3,7 +3,7 @@ package manager;
 import model.Task;
 import java.util.*;
 
-/** HistoryManager на базе двусвязного списка + HashMap<id, node> */
+/** HistoryManager на базе двойного связанного списка + HashMap<id, node> */
 public class InMemoryHistoryManager implements HistoryManager {
 
     /* ───── узел списка ───── */
@@ -26,7 +26,7 @@ public class InMemoryHistoryManager implements HistoryManager {
 
     /* ───── вспомогательные ───── */
 
-    /** добавляем просмотр в хвост */
+    /** Добавляем просмотр в хвост */
     private void linkLast(Task task) {
         Node oldTail = tail;
         Node newNode = new Node(oldTail, task, null);   //  n → newNode
@@ -39,7 +39,7 @@ public class InMemoryHistoryManager implements HistoryManager {
         }
     }
 
-    /** удаляем произвольный узел */
+    /** Удаляем произвольный узел */
     private void removeNode(Node target) {
         if (target == null) {
             return;
@@ -61,7 +61,7 @@ public class InMemoryHistoryManager implements HistoryManager {
         }
     }
 
-    /** выгружаем историю списком */
+    /** Выгружаем историю списком */
     private List<Task> getTasks() {
         List<Task> list = new ArrayList<>();
         for (Node current = head; current != null; current = current.next) {

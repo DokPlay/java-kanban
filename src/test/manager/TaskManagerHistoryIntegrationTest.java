@@ -1,7 +1,6 @@
 package manager;
 
-import manager.Managers;
-import manager.TaskManager;
+
 import model.Task;
 import model.Status;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,7 +23,7 @@ class TaskManagerHistoryIntegrationTest {
     /** Удаление задачи очищает историю */
     @Test
     void deletingTask_removesItFromHistory() {
-        int id = tm.addNewTask(new Task("Task-1", "descr", Status.NEW));
+        int id = tm.addNewTask(new Task("Task-1", "description", Status.NEW));
 
         tm.getTask(id);                         // помещаем в историю
         assertEquals(1, tm.getHistory().size(),

@@ -1,15 +1,18 @@
 package manager;
 
-import model.*;
+import model.Status;
+import model.Task;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 
 /**
- * Юнит-тесты InMemoryTaskManager + HistoryManager.
+ * Unit-тесты InMemoryTaskManager + HistoryManager.
  */
 class InMemoryTaskManagerTest {
 
@@ -32,7 +35,8 @@ class InMemoryTaskManagerTest {
         List<Task> history = tm.getHistory();
         assertEquals(1, history.size(),
                 "В истории должен остаться единственный просмотр");
-        assertEquals(id, history.get(0).getId());
+        assertEquals(id, history.get(0).getId());//TODO: если именно нужно от Java 21 и более то нужно заменить на
+        // assertEquals(id, history.getFirst().getId());
     }
 
     /* -------- 2. История может быть > 10 -------- */

@@ -1,43 +1,50 @@
 ### IntelliJ IDEA ###
-# Игнорируем всё содержимое .idea — это папка настроек среды разработки
-# Оставляем только нужные файлы, чтобы IDE могла корректно открыть проект
+# По умолчанию игнорируем всю .idea (локальные настройки)
 .idea/
-!.idea/misc.xml           # Уровень JDK, базовые настройки проекта
-!.idea/modules.xml        # Структура модулей (если нет Maven/Gradle)
-!.idea/libraries/         # Подключённые библиотеки, например JUnit
-!.idea/vcs.xml            # Настройки системы контроля версий (Git)
 
-# Игнорируем файлы модулей IntelliJ (.iml) — не нужны в репозитории
+# Разрешаем только минимально нужные файлы проекта
+!.idea/misc.xml          # JDK / базовые настройки
+!.idea/modules.xml       # Структура модулей
+!.idea/vcs.xml           # Настройки VCS (Git)
+# ВАЖНО: .idea/libraries НЕ коммитим, чтобы не тянуть локальные JUnit и т.п.
+# (Если осознанно нужно шарить библиотеки — раскомментируй следующую строку)
+# !.idea/libraries/
+
+# Файлы модулей IntelliJ коммитить не надо
 *.iml
 
-### Build output ###
-# Исключаем папки, которые содержат скомпилированные классы и артефакты
-out/                      # Папка вывода сборки IntelliJ
-bin/                      # Папка вывода Eclipse/ручной сборки
-target/                   # Папка сборки Maven (если появится)
+### Build output / compiled ###
+out/                     # IntelliJ build output
+bin/                     # Eclipse/ручная сборка
+build/                   # Gradle build (на будущее)
+target/                  # Maven build (на будущее)
+*.class                  # Скомпилированные классы
+
+### Локальные файлы/логи ###
+tasks.csv                # Файл автосохранения менеджера
+*.log
+hs_err_pid*
+replay_pid*
 
 ### OS ###
-# Системные файлы macOS, не должны попадать в репозиторий
-.DS_Store
+.DS_Store                # macOS
+Thumbs.db                # Windows
 
 ### VS Code ###
-# Конфигурации Visual Studio Code (если кто-то откроет проект там)
 .vscode/
 
 ### Eclipse ###
-# Игнорируем все файлы и папки, связанные с Eclipse IDE
-.apt_generated            # Автоматически сгенерированные исходники
-.classpath                # Файл конфигурации путей классов
-.factorypath              # Конфигурация аннотаций
-.project                  # Основной файл проекта Eclipse
-.settings                 # Папка с настройками проекта
-.springBeans              # Конфиги Spring Beans (если используется)
-.sts4-cache               # Кэш Spring Tool Suite (STS)
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
 
 ### NetBeans ###
-# Всё, что создаёт NetBeans IDE
-nbproject/private/        # Личные настройки проекта
-nbbuild/                  # Папка сборки NetBeans
-dist/                     # Артефакты сборки (JAR и т.д.)
-nbdist/                   # Расширенная папка вывода
-.nb-gradle/               # Кэш Gradle от NetBeans
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/

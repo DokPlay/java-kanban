@@ -1,4 +1,0 @@
-id,type,name,status,description,epic
-3,TASK,Читать ТЗ,IN_PROGRESS,вникнуть,
-1,EPIC,Спринт-7,NEW,Файл-менеджер,
-2,SUBTASK,save(),NEW,реализовать,1

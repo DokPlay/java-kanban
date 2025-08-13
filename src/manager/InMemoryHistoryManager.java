@@ -1,100 +1,39 @@
 package manager;
 
 import model.Task;
-import java.util.*;
 
-/** HistoryManager на базе двойного связанного списка + HashMap<id, node> */
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+
 public class InMemoryHistoryManager implements HistoryManager {
 
-    /* ───── узел списка ───── */
-    private static class Node {
-        Task data;
-        Node prev;
-        Node next;
-
-        Node(Node prev, Task data, Node next) {
-            this.prev = prev;
-            this.data = data;
-            this.next = next;
-        }
-    }
-
-    /* ───── поля ───── */
-    private final Map<Integer, Node> index = new HashMap<>();
-    private Node head;
-    private Node tail;
-
-    /* ───── вспомогательные ───── */
-
-    /** Добавляем просмотр в хвост */
-    private void linkLast(Task task) {
-        Node oldTail = tail;
-        Node newNode = new Node(oldTail, task, null);   //  n → newNode
-        tail = newNode;
-
-        if (oldTail == null) {
-            head = newNode;                             //  фигурные скобки
-        } else {
-            oldTail.next = newNode;                     //  фигурные скобки
-        }
-    }
-
-    /** Удаляем произвольный узел */
-    private void removeNode(Node target) {
-        if (target == null) {
-            return;
-        }
-
-        Node prev = target.prev;
-        Node next = target.next;
-
-        if (prev != null) {
-            prev.next = next;
-        } else {
-            head = next;                                //  фигурные скобки
-        }
-
-        if (next != null) {
-            next.prev = prev;
-        } else {
-            tail = prev;                                //  фигурные скобки
-        }
-    }
-
-    /** Выгружаем историю списком */
-    private List<Task> getTasks() {
-        List<Task> list = new ArrayList<>();
-        for (Node current = head; current != null; current = current.next) {
-            list.add(current.data);
-        }
-        return list;
-    }
-
-    /* ───── HistoryManager API ───── */
+    private static final int MAX = 10;
+    private final LinkedHashMap<Integer, Task> order = new LinkedHashMap<>();
 
     @Override
     public void add(Task task) {
         if (task == null) {
-            return;                                     //  фигурные скобки
+            return;
         }
-
-        /* если id уже есть — убираем старый узел */
-        Node duplicate = index.remove(task.getId());
-        removeNode(duplicate);
-
-        /* вносим новый просмотр */
-        linkLast(task);
-        index.put(task.getId(), tail);
+        int id = task.getId();
+        // Дедупликация.
+        order.remove(id);
+        order.put(id, task);
+        // Ограничиваем размер.
+        while (order.size() > MAX) {
+            Integer firstKey = order.keySet().iterator().next();
+            order.remove(firstKey);
+        }
     }
 
     @Override
     public void remove(int id) {
-        Node node = index.remove(id);
-        removeNode(node);
+        order.remove(id);
     }
 
     @Override
     public List<Task> getHistory() {
-        return getTasks();
+        return new ArrayList<>(order.values());
     }
 }

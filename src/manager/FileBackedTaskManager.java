@@ -1,6 +1,10 @@
 package manager;
 
-import model.*;
+import model.Epic;
+import model.Status;
+import model.Subtask;
+import model.Task;
+import model.TaskType;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -8,51 +12,63 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.Duration;                // NEW (sprint-8)
+import java.time.LocalDateTime;          // NEW (sprint-8)
+import java.time.format.DateTimeFormatter; // NEW (sprint-8)
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Менеджер с автоматическим сохранением в CSV-файл.
- * Наследуем InMemoryTaskManager и добавляем автосохранение.
+ * Менеджер с сохранением состояния в файл (CSV).
+ * CHANGED (sprint-8):
+ * - расширен CSV-формат: добавлены колонки durationMinutes и startTime;
+ * - добавлена обратная совместимость чтения старого формата;
+ * - на restore используем put*PreserveId + setNextIdAfterRestore.
  */
 public class FileBackedTaskManager extends InMemoryTaskManager {
 
     private final File file;
 
-    public FileBackedTaskManager(File file) {
-        super();
-        this.file = file;
-    }
+    // Единый формат для CSV
+    private static final DateTimeFormatter CSV_TIME_FMT = Task.CSV_TIME_FMT;
 
     /* ───────────── фабрика ───────────── */
 
+    public FileBackedTaskManager(File file) {
+        this.file = file;
+    }
+
+    @SuppressWarnings("unused")
     public static FileBackedTaskManager loadFromFile(File file) {
-        FileBackedTaskManager m = new FileBackedTaskManager(file);
-        m.restore();
-        return m;
+        FileBackedTaskManager manager = new FileBackedTaskManager(file);
+        manager.restore();
+        return manager;
     }
 
     /* ───────────── сохранение ───────────── */
 
-    /** Сохраняет все задачи в CSV: id,type,name,status,description,epic */
+    /** Сохраняет все задачи в CSV: id,type,name,status,description,durationMinutes,startTime,epic */
     private void save() {
-        try (BufferedWriter w = Files.newBufferedWriter(file.toPath(), StandardCharsets.UTF_8)) {
-            w.write("id,type,name,status,description,epic");
-            w.newLine();
+        try (BufferedWriter writer =
+                     Files.newBufferedWriter(file.toPath(), StandardCharsets.UTF_8)) {
+            writer.write("id,type,name,status,description,durationMinutes,startTime,epic");
+            writer.newLine();
 
-            // порядок не критичен, но читается приятнее
-            for (Task t : getTasks()) {
-                w.write(t.toCsvRow());
-                w.newLine();
+            // Порядок не критичен, но читается приятнее
+            for (Task task : getTasks()) {
+                writer.write(task.toCsvRow());
+                writer.newLine();
             }
-            for (Epic e : getEpics()) {
-                w.write(e.toCsvRow());
-                w.newLine();
+            for (Epic epic : getEpics()) {
+                writer.write(epic.toCsvRow());
+                writer.newLine();
             }
-            for (Subtask s : getSubtasks()) {
-                w.write(s.toCsvRow());
-                w.newLine();
+            for (Subtask subtask : getSubtasks()) {
+                writer.write(subtask.toCsvRow());
+                writer.newLine();
             }
+
         } catch (IOException ex) {
             throw new ManagerSaveException("Не удалось сохранить файл", ex);
         }
@@ -60,35 +76,42 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
 
     /* ───────────── восстановление ───────────── */
 
-    /**
-     * Читает CSV и восстанавливает состояние.
-     * ВАЖНО: не перебиваем зафиксированные в файле ID.
-     * Поэтому используем прямые put*-методы из базового класса и выставляем nextId.
-     */
+    /** Читает CSV и восстанавливает состояние. */
     private void restore() {
         if (!file.exists()) {
             return;
         }
 
-        List<Epic> epics     = new ArrayList<>();
-        List<Task> tasks     = new ArrayList<>();
+        List<Epic> epics = new ArrayList<>();
+        List<Task> tasks = new ArrayList<>();
         List<Subtask> subtasks = new ArrayList<>();
 
-        try (BufferedReader r = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)) {
-            String header = r.readLine(); // заголовок
+        try (BufferedReader reader =
+                     Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)) {
+            String header = reader.readLine(); // заголовок
             if (header == null) {
                 return;
             }
+
             String line;
-            while ((line = r.readLine()) != null) {
+            while ((line = reader.readLine()) != null) {
                 if (line.isBlank()) {
                     continue;
                 }
-                Task t = fromCsv(line);
-                switch (t.getType()) {
-                    case EPIC -> epics.add((Epic) t);
-                    case TASK -> tasks.add(t);
-                    case SUBTASK -> subtasks.add((Subtask) t);
+
+                // внутри restore(), в цикле чтения строк CSV
+                Task task = fromCsv(line);
+
+                if (task instanceof Epic epic) {
+                    epics.add(epic);
+                } else if (task instanceof Subtask subtask) {
+                    subtasks.add(subtask);
+                } else if (task.getType() == TaskType.TASK) { // базовая Task
+                    tasks.add(task);
+                } else {
+                    throw new IllegalStateException(
+                            "Неизвестный подкласс задачи (id=" + task.getId() + "): "
+                                    + task.getClass().getName());
                 }
             }
         } catch (IOException ex) {
@@ -96,29 +119,39 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         }
 
         // Важно: сначала эпики, затем задачи, затем подзадачи
-        for (Epic e : epics) {
-            super.putEpicPreserveId(e);
+        for (Epic epic : epics) {
+            super.putEpicPreserveId(epic);
         }
-        for (Task t : tasks) {
-            super.putTaskPreserveId(t);
+        for (Task task : tasks) {
+            super.putTaskPreserveId(task);
         }
-        for (Subtask s : subtasks) {
-            super.putSubtaskPreserveId(s);
+        for (Subtask subtask : subtasks) {
+            super.putSubtaskPreserveId(subtask);
         }
-        // ---> СДВИГАЕМ nextId TODO:так же для себя делал,убрал второстепенные замечания!
-        int maxId = 0;
-        for (Task t : tasks)     maxId = Math.max(maxId, t.getId());
-        for (Epic e : epics)     maxId = Math.max(maxId, e.getId());
-        for (Subtask s : subtasks) maxId = Math.max(maxId, s.getId());
 
+        // Сдвигаем nextId + пересчитываем эпики (внутри setNextIdAfterRestore)
+        int maxId = 0;
+        for (Task task : tasks) {
+            maxId = Math.max(maxId, task.getId());
+        }
+        for (Epic epic : epics) {
+            maxId = Math.max(maxId, epic.getId());
+        }
+        for (Subtask subtask : subtasks) {
+            maxId = Math.max(maxId, subtask.getId());
+        }
         super.setNextIdAfterRestore(maxId + 1);
     }
-
 
     /* ───────────── CSV утилиты ───────────── */
 
     private static Task fromCsv(String csv) {
         String[] p = csv.split(",", -1);
+        // Старый формат Sprint 7: id,type,name,status,description,epic  (6 полей, epic только у subtask)
+        // Новый формат Sprint 8: id,type,name,status,description,durationMinutes,startTime,epic  (8 полей)
+        if (p.length != 6 && p.length != 8) {
+            throw new ManagerSaveException("Некорректная строка CSV: " + csv);
+        }
 
         int id = Integer.parseInt(p[0]);
         TaskType type = TaskType.valueOf(p[1]);
@@ -126,68 +159,98 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         Status status = Status.valueOf(p[3]);
         String description = p[4];
 
+        String durStr = p.length == 8 ? p[5] : "";
+        String startStr = p.length == 8 ? p[6] : "";
+        // после проверки выше длина может быть только 6 или 8
+        String epicStr = p.length == 8 ? p[7] : p[5];
+
+        Duration duration = durStr.isBlank() ? null : Duration.ofMinutes(Long.parseLong(durStr));
+        LocalDateTime startTime = parseTimeOrNull(startStr);
+
         switch (type) {
             case TASK: {
-                Task t = new Task(name, description, status);
-                t.setId(id);
-                return t;
+                Task task = new Task(name, description, status);
+                task.setId(id);
+                task.setDuration(duration);
+                task.setStartTime(startTime);
+                return task;
             }
             case EPIC: {
-                Epic e = new Epic(name, description);
-                e.setId(id);
-                e.setStatus(status);
-                return e;
+                Epic epic = new Epic(name, description);
+                epic.setId(id);
+                epic.setStatus(status);
+                // duration/start/end будут пересчитаны после загрузки subtask
+                return epic;
             }
             case SUBTASK: {
-                int epicId = Integer.parseInt(p[5]);
-                Subtask s = new Subtask(name, description, epicId);
-                s.setId(id);
-                s.setStatus(status);
-                return s;
+                int epicId = (epicStr == null || epicStr.isBlank()) ? 0 : Integer.parseInt(epicStr);
+                Subtask subtask = new Subtask(name, description, status, epicId);
+                subtask.setId(id);
+                subtask.setDuration(duration);
+                subtask.setStartTime(startTime);
+                return subtask;
             }
             default:
                 throw new IllegalStateException("Неизвестный тип: " + type);
         }
     }
 
-    /* ───────────── переопределения с автоматическим сохранением ───────────── */
+    private static LocalDateTime parseTimeOrNull(String s) {
+        if (s == null || s.isBlank()) {
+            return null;
+        }
+        try {
+            // основной формат
+            return LocalDateTime.parse(s, CSV_TIME_FMT);
+        } catch (DateTimeParseException ex) {
+            try {
+                // пробуем ISO в случае старого/другого вывода
+                return LocalDateTime.parse(s);
+            } catch (DateTimeParseException ex2) {
+                // мягкая деградация — не срываем загрузку
+                return null;
+            }
+        }
+    }
+
+    /* ───────────── переопределения с автосохранением ───────────── */
 
     @Override
-    public int addNewTask(Task t) {
-        int id = super.addNewTask(t);
+    public int addNewTask(Task task) {
+        int id = super.addNewTask(task);
         save();
         return id;
     }
 
     @Override
-    public int addNewEpic(Epic e) {
-        int id = super.addNewEpic(e);
+    public int addNewEpic(Epic epic) {
+        int id = super.addNewEpic(epic);
         save();
         return id;
     }
 
     @Override
-    public int addNewSubtask(Subtask s) {
-        int id = super.addNewSubtask(s);
+    public int addNewSubtask(Subtask subtask) {
+        int id = super.addNewSubtask(subtask);
         save();
         return id;
     }
 
     @Override
-    public void updateTask(Task t) {
-        super.updateTask(t);
+    public void updateTask(Task task) {
+        super.updateTask(task);
         save();
     }
 
     @Override
-    public void updateEpic(Epic e) {
-        super.updateEpic(e);
+    public void updateEpic(Epic epic) {
+        super.updateEpic(epic);
         save();
     }
 
     @Override
-    public void updateSubtask(Subtask s) {
-        super.updateSubtask(s);
+    public void updateSubtask(Subtask subtask) {
+        super.updateSubtask(subtask);
         save();
     }
 
@@ -207,26 +270,5 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     public void removeSubtask(int id) {
         super.removeSubtask(id);
         save();
-    }
-
-    // Если в интерфейсе есть метод clear, раскомментировать. Это я себе на будущее!
-    /*TODO(clear): @Override
-     public void clear() {
-     super.clear();
-     save();
-     } */
-
-    /* ───────────── demo ───────────── */
-
-    public static void main(String[] args) {
-        FileBackedTaskManager m = new FileBackedTaskManager(new File("tasks.csv"));
-
-        Epic epic = new Epic("Спринт-7", "Файл-менеджер");
-        m.addNewEpic(epic);
-        m.addNewSubtask(new Subtask("save()", "реализовать", epic.getId()));
-        m.addNewTask(new Task("Читать ТЗ", "вникнуть", Status.IN_PROGRESS));
-
-        FileBackedTaskManager restored = FileBackedTaskManager.loadFromFile(new File("tasks.csv"));
-        System.out.println("♻ восстановлено задач: " + restored.getTasks().size());
     }
 }

@@ -3,7 +3,6 @@ package manager;
 import exceptions.TaskValidationException; // NEW (sprint-8)
 import model.*;
 
-import java.time.Duration; // NEW (sprint-8)
 import java.time.LocalDateTime; // NEW (sprint-8)
 import java.util.*;
 import java.util.stream.Collectors;
@@ -250,47 +249,8 @@ public class InMemoryTaskManager implements TaskManager {
         List<Subtask> subs =
                 epic.getSubtaskIds().stream().map(subtasks::get).filter(Objects::nonNull).toList();
 
-        // статус
-        if (subs.isEmpty()) {
-            epic.setStatus(Status.NEW);
-        } else {
-            boolean allNew = subs.stream().allMatch(s -> s.getStatus() == Status.NEW);
-            boolean allDone = subs.stream().allMatch(s -> s.getStatus() == Status.DONE);
-            if (allNew) {
-                epic.setStatus(Status.NEW);
-            } else if (allDone) {
-                epic.setStatus(Status.DONE);
-            } else {
-                epic.setStatus(Status.IN_PROGRESS);
-            }
-        }
-
-        // duration = сумма минут (null считаем как 0)
-        long minutes =
-                subs.stream()
-                        .map(Subtask::getDuration)
-                        .filter(Objects::nonNull)
-                        .mapToLong(Duration::toMinutes)
-                        .sum();
-        epic.setCalculatedDuration(minutes == 0 ? null : Duration.ofMinutes(minutes));
-
-        // start = минимальный start subtask; end = макс end
-        LocalDateTime start =
-                subs.stream()
-                        .map(Subtask::getStartTime)
-                        .filter(Objects::nonNull)
-                        .min(LocalDateTime::compareTo)
-                        .orElse(null);
-
-        LocalDateTime end =
-                subs.stream()
-                        .map(Subtask::getEndTime)
-                        .filter(Objects::nonNull)
-                        .max(LocalDateTime::compareTo)
-                        .orElse(null);
-
-        epic.setCalculatedStart(start);
-        epic.setCalculatedEnd(end);
+        // TODO(review sprint-8): пересчёт эпика вынесен в Epic.recalcFromSubtasks — один проход.
+        epic.recalcFromSubtasks(subs);
     }
 
     /* ---------- пересечения (sprint-8) ---------- */

@@ -5,6 +5,7 @@ import model.Status;
 import model.Subtask;
 import model.Task;
 import model.TaskType;
+import util.CsvUtils; // TODO(review): парсинг времени вынесен в утилиту
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -12,10 +13,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.time.Duration;                // NEW (sprint-8)
-import java.time.LocalDateTime;          // NEW (sprint-8)
+import java.time.Duration;                 // NEW (sprint-8)
+import java.time.LocalDateTime;           // NEW (sprint-8)
 import java.time.format.DateTimeFormatter; // NEW (sprint-8)
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -86,6 +86,8 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         List<Task> tasks = new ArrayList<>();
         List<Subtask> subtasks = new ArrayList<>();
 
+        int maxId = 0; // TODO(review): считаем maxId за один проход при чтении файла
+
         try (BufferedReader reader =
                      Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)) {
             String header = reader.readLine(); // заголовок
@@ -99,8 +101,8 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                     continue;
                 }
 
-                // внутри restore(), в цикле чтения строк CSV
                 Task task = fromCsv(line);
+                maxId = Math.max(maxId, task.getId()); // TODO(review): обновляем maxId на лету
 
                 if (task instanceof Epic epic) {
                     epics.add(epic);
@@ -129,43 +131,33 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
             super.putSubtaskPreserveId(subtask);
         }
 
-        // Сдвигаем nextId + пересчитываем эпики (внутри setNextIdAfterRestore)
-        int maxId = 0;
-        for (Task task : tasks) {
-            maxId = Math.max(maxId, task.getId());
-        }
-        for (Epic epic : epics) {
-            maxId = Math.max(maxId, epic.getId());
-        }
-        for (Subtask subtask : subtasks) {
-            maxId = Math.max(maxId, subtask.getId());
-        }
+        // TODO(review): без дополнительных циклов — используем maxId, посчитанный при чтении
         super.setNextIdAfterRestore(maxId + 1);
     }
 
     /* ───────────── CSV утилиты ───────────── */
 
     private static Task fromCsv(String csv) {
-        String[] p = csv.split(",", -1);
+        String[] taskParts = csv.split(",", -1); // TODO(review): не используем односимвольные имена
         // Старый формат Sprint 7: id,type,name,status,description,epic  (6 полей, epic только у subtask)
         // Новый формат Sprint 8: id,type,name,status,description,durationMinutes,startTime,epic  (8 полей)
-        if (p.length != 6 && p.length != 8) {
+        if (taskParts.length != 6 && taskParts.length != 8) {
             throw new ManagerSaveException("Некорректная строка CSV: " + csv);
         }
 
-        int id = Integer.parseInt(p[0]);
-        TaskType type = TaskType.valueOf(p[1]);
-        String name = p[2];
-        Status status = Status.valueOf(p[3]);
-        String description = p[4];
+        int id = Integer.parseInt(taskParts[0]);
+        TaskType type = TaskType.valueOf(taskParts[1]);
+        String name = taskParts[2];
+        Status status = Status.valueOf(taskParts[3]);
+        String description = taskParts[4];
 
-        String durStr = p.length == 8 ? p[5] : "";
-        String startStr = p.length == 8 ? p[6] : "";
+        String durStr = taskParts.length == 8 ? taskParts[5] : "";
+        String startStr = taskParts.length == 8 ? taskParts[6] : "";
         // после проверки выше длина может быть только 6 или 8
-        String epicStr = p.length == 8 ? p[7] : p[5];
+        String epicStr = taskParts.length == 8 ? taskParts[7] : taskParts[5];
 
         Duration duration = durStr.isBlank() ? null : Duration.ofMinutes(Long.parseLong(durStr));
-        LocalDateTime startTime = parseTimeOrNull(startStr);
+        LocalDateTime startTime = CsvUtils.parseTimeOrNull(startStr, CSV_TIME_FMT); // TODO(review): парсинг времени из утилиты
 
         switch (type) {
             case TASK: {
@@ -192,24 +184,6 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
             }
             default:
                 throw new IllegalStateException("Неизвестный тип: " + type);
-        }
-    }
-
-    private static LocalDateTime parseTimeOrNull(String s) {
-        if (s == null || s.isBlank()) {
-            return null;
-        }
-        try {
-            // основной формат
-            return LocalDateTime.parse(s, CSV_TIME_FMT);
-        } catch (DateTimeParseException ex) {
-            try {
-                // пробуем ISO в случае старого/другого вывода
-                return LocalDateTime.parse(s);
-            } catch (DateTimeParseException ex2) {
-                // мягкая деградация — не срываем загрузку
-                return null;
-            }
         }
     }
 

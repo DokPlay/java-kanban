@@ -1,23 +1,39 @@
 package manager;
 
 import model.Task;
-import java.util.*;
-//Хранит максимум 10 последних задач. При превышении лимита
- // самая старая задача удаляется.
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+
 public class InMemoryHistoryManager implements HistoryManager {
-    private static final int MAX_HISTORY = 10;
-    private final Deque<Task> history = new ArrayDeque<>();
+
+    private static final int MAX = 10;
+    private final LinkedHashMap<Integer, Task> order = new LinkedHashMap<>();
 
     @Override
     public void add(Task task) {
-        history.addLast(task);
-        if (history.size() > MAX_HISTORY) {
-            history.pollFirst();
+        if (task == null) {
+            return;
+        }
+        int id = task.getId();
+        // Дедупликация.
+        order.remove(id);
+        order.put(id, task);
+        // Ограничиваем размер.
+        while (order.size() > MAX) {
+            Integer firstKey = order.keySet().iterator().next();
+            order.remove(firstKey);
         }
     }
-//Возвращает список просмотренных задач (в порядке просмотра).
+
+    @Override
+    public void remove(int id) {
+        order.remove(id);
+    }
+
     @Override
     public List<Task> getHistory() {
-        return new ArrayList<>(history);
+        return new ArrayList<>(order.values());
     }
 }

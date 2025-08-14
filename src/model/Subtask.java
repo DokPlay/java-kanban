@@ -2,6 +2,7 @@ package model;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import util.CsvUtils; // TODO(review sprint-8): используем утилиту для CSV-экранирования
 
 /**
  * Подзадача, привязанная к эпику.
@@ -36,6 +37,7 @@ public class Subtask extends Task {
         return TaskType.SUBTASK;
     }
 
+    // TODO(review sprint-8): экранирование перенесено в CsvUtils, чтобы не дублировать метод.
     @Override
     public String toCsvRow() {
         String dur = duration == null ? "" : String.valueOf(duration.toMinutes());
@@ -44,20 +46,16 @@ public class Subtask extends Task {
                 ",",
                 String.valueOf(id),
                 getType().name(),
-                escape(title),
+                CsvUtils.escape(title),
                 status.name(),
-                escape(description),
+                CsvUtils.escape(description),
                 dur,
                 st,
                 String.valueOf(epicId)
         );
     }
 
-    private static String escape(String s) {
-        return s == null ? "" : s;
-    }
-
-    // Удобные fluent-сеттеры TODO:(по желанию)
+    // Удобные fluent-сеттеры
     @SuppressWarnings("unused")
     public Subtask withStart(LocalDateTime start) {
         this.startTime = start;

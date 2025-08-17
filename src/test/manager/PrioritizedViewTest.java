@@ -12,28 +12,29 @@ import org.junit.jupiter.api.Test;
 
 class PrioritizedViewTest {
 
-    private InMemoryTaskManager manager;
+  private InMemoryTaskManager manager;
 
-    @BeforeEach
-    void setUp() {
-        manager = new InMemoryTaskManager();
-    }
+  @BeforeEach
+  void setUp() {
+    manager = new InMemoryTaskManager();
+  }
 
-    @Test
-    void prioritized_excludesEpicsAndNullStart() {
-        int epicId = manager.addNewEpic(new Epic("E", "d"));
+  @Test
+  void prioritized_excludesEpicsAndNullStart() {
+    int epicId = manager.addNewEpic(new Epic("E", "d"));
 
-        Task noStart = new Task("noStart", "");
-        noStart.setDuration(Duration.ofMinutes(15));
-        manager.addNewTask(noStart);
+    Task noStart = new Task("noStart", "");
+    noStart.setDuration(Duration.ofMinutes(15));
+    manager.addNewTask(noStart);
 
-        Task withStart = new Task("withStart", "");
-        withStart.setDuration(Duration.ofMinutes(10));
-        withStart.setStartTime(LocalDateTime.of(2025, 1, 1, 10, 0));
-        manager.addNewTask(withStart);
+    Task withStart = new Task("withStart", "");
+    withStart.setDuration(Duration.ofMinutes(10));
+    withStart.setStartTime(LocalDateTime.of(2025, 1, 1, 10, 0));
+    manager.addNewTask(withStart);
 
-        List<Task> pr = manager.getPrioritizedTasks();
-        assertEquals(1, pr.size(), "В приоритизации должны быть только задачи с startTime (без эпиков)");
-        assertEquals("withStart", pr.get(0).getTitle());
-    }
+    List<Task> pr = manager.getPrioritizedTasks();
+    assertEquals(
+        1, pr.size(), "В приоритизации должны быть только задачи с startTime (без эпиков)");
+    assertEquals("withStart", pr.get(0).getTitle());
+  }
 }

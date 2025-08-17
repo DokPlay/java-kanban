@@ -16,6 +16,9 @@ import java.util.stream.Collectors;
  * - эпики получают расчётные duration/start/end от подзадач;
  * - добавлены protected put*-методы и setNextIdAfterRestore для FileBacked;
  * - часть циклов переписана на stream API.
+ *
+ * <p>CHANGED (sprint-9):
+ * - устранены дубли в prioritized: удаление по id перед переиндексацией.
  */
 public class InMemoryTaskManager implements TaskManager {
 
@@ -42,12 +45,17 @@ public class InMemoryTaskManager implements TaskManager {
 
     private final NavigableSet<Task> prioritized = new TreeSet<>(PRIORITY_CMP);
 
-    private void trackPrioritized(Task task) {
-        if (task != null && task.getStartTime() != null) {
-            prioritized.remove(task);
+    // sprint-9: удаляем из приоритета все версии по id (независимо от старого startTime)
+    private void prioritizedRemoveById(int id) { // sprint-9
+        prioritized.removeIf(t -> t.getId() == id);
+    }
+
+    // sprint-9: переиндексация элемента в приоритете
+    private void prioritizedReindex(Task task) { // sprint-9
+        if (task == null) return;
+        prioritizedRemoveById(task.getId());
+        if (task.getStartTime() != null) {
             prioritized.add(task);
-        } else {
-            prioritized.remove(task);
         }
     }
 
@@ -60,7 +68,7 @@ public class InMemoryTaskManager implements TaskManager {
         int id = generateId();
         task.setId(id);
         tasks.put(id, task);
-        trackPrioritized(task);
+        prioritizedReindex(task); // sprint-9
         return id;
     }
 
@@ -84,7 +92,7 @@ public class InMemoryTaskManager implements TaskManager {
         subtask.setId(id);
         subtasks.put(id, subtask);
         epic.addSubtaskId(id);
-        trackPrioritized(subtask);
+        prioritizedReindex(subtask); // sprint-9
         recalcEpic(epic.getId());
         return id;
     }
@@ -98,7 +106,7 @@ public class InMemoryTaskManager implements TaskManager {
         }
         validateNoOverlaps(task, task.getId());
         tasks.put(task.getId(), task);
-        trackPrioritized(task);
+        prioritizedReindex(task); // sprint-9
     }
 
     @Override
@@ -121,7 +129,7 @@ public class InMemoryTaskManager implements TaskManager {
         }
         validateNoOverlaps(subtask, subtask.getId());
         subtasks.put(subtask.getId(), subtask);
-        trackPrioritized(subtask);
+        prioritizedReindex(subtask); // sprint-9
         recalcEpic(subtask.getEpicId());
     }
 
@@ -131,7 +139,7 @@ public class InMemoryTaskManager implements TaskManager {
     public void removeTask(int id) {
         Task removed = tasks.remove(id);
         if (removed != null) {
-            prioritized.remove(removed);
+            prioritizedRemoveById(id); // sprint-9
             historyManager.remove(id);
         }
     }
@@ -143,10 +151,8 @@ public class InMemoryTaskManager implements TaskManager {
             // удаляем все подзадачи эпика
             for (int sid : epic.getSubtaskIds()) {
                 Subtask s = subtasks.remove(sid);
-                if (s != null) {
-                    prioritized.remove(s);
-                    historyManager.remove(sid);
-                }
+                prioritizedRemoveById(sid); // sprint-9
+                historyManager.remove(sid);
             }
             historyManager.remove(id);
         }
@@ -158,9 +164,10 @@ public class InMemoryTaskManager implements TaskManager {
         if (s != null) {
             Epic epic = epics.get(s.getEpicId());
             if (epic != null) {
-                epic.getSubtaskIds().remove((Integer) id);
+                // sprint-9: используем безопасный метод модели (если есть) или удаляем по id
+                epic.removeSubtaskId(id); // sprint-9 (в твоём Epic он есть)
             }
-            prioritized.remove(s);
+            prioritizedRemoveById(id); // sprint-9
             historyManager.remove(id);
             if (epic != null) {
                 recalcEpic(epic.getId());
@@ -230,7 +237,7 @@ public class InMemoryTaskManager implements TaskManager {
         return historyManager.getHistory();
     }
 
-    /* ---------- prioritized (sprint-8) ---------- */
+    /* ---------- prioritized ---------- */
 
     @Override
     public List<Task> getPrioritizedTasks() {
@@ -294,7 +301,7 @@ public class InMemoryTaskManager implements TaskManager {
     // Восстановление с сохранением id (используется FileBackedTaskManager.restore())
     protected void putTaskPreserveId(Task t) {
         tasks.put(t.getId(), t);
-        trackPrioritized(t);
+        prioritizedReindex(t); // sprint-9
     }
 
     protected void putEpicPreserveId(Epic e) {
@@ -308,7 +315,7 @@ public class InMemoryTaskManager implements TaskManager {
         if (epic != null) {
             epic.addSubtaskId(s.getId());
         }
-        trackPrioritized(s);
+        prioritizedReindex(s); // sprint-9
     }
 
     protected void setNextIdAfterRestore(int next) {

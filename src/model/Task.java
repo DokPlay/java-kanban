@@ -4,6 +4,7 @@ import java.time.Duration;                // NEW (sprint-8)
 import java.time.LocalDateTime;           // NEW (sprint-8)
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
+import util.CsvUtils;                     // sprint-9: используем общую утилиту для CSV-escape
 
 /**
  * Базовая задача.
@@ -127,18 +128,13 @@ public class Task {
                 ",",
                 String.valueOf(id),
                 getType().name(),
-                escape(title),
+                CsvUtils.escape(title),        // sprint-9: общий util вместо локального escape
                 status.name(),
-                escape(description),
+                CsvUtils.escape(description),  // sprint-9: общий util вместо локального escape
                 dur,
                 st,
                 "" // epic
         );
-    }
-
-    // экранирование запятых
-    private static String escape(String s) {
-        return s == null ? "" : s;
     }
 
     /* ---------- equals/hashCode ---------- */

@@ -11,7 +11,11 @@ import util.CsvUtils;
  */
 public class Epic extends Task {
 
-    private final List<Integer> subtaskIds = new ArrayList<>();
+    // sprint9: БЫЛО: `private final List<Integer> subtaskIds = new ArrayList<>();`
+    // Gson создаёт объект, обходя конструктор/инициализацию полей → в рантайме это поле могло быть null.
+    // Делаю ленивую инициализацию через геттер/хелперы.
+    private List<Integer> subtaskIds; // TODO:sprint9: убрал final и инициализацию здесь
+
     private LocalDateTime endTime;
 
     public Epic(String title, String description) {
@@ -23,12 +27,29 @@ public class Epic extends Task {
         return TaskType.EPIC;
     }
 
+    // sprint9: гарантируем НЕ-null. Возвращаем МУТАБЕЛЬНЫЙ список, чтобы не ломать существующий код менеджера.
     public List<Integer> getSubtaskIds() {
-        return subtaskIds;
+        if (subtaskIds == null) {                 // sprint9
+            subtaskIds = new ArrayList<>();       // sprint9
+        }
+        return subtaskIds;                        // sprint9
     }
 
     public void addSubtaskId(int id) {
-        subtaskIds.add(id);
+        // sprint9: защищаемся от null и дублей
+        List<Integer> ids = getSubtaskIds();      // sprint9
+        if (!ids.contains(id)) {                  // sprint9
+            ids.add(id);                          // sprint9
+        }
+    }
+
+    public void removeSubtaskId(int id) {         // sprint9: безопасное удаление
+        List<Integer> ids = getSubtaskIds();      // sprint9
+        ids.remove((Integer) id);                 // sprint9
+    }
+
+    public void clearSubtaskIds() {               // sprint9
+        getSubtaskIds().clear();                  // sprint9
     }
 
     // TODO(review sprint-8): пересчёт status/duration/start/end за один проход по сабтаскам.

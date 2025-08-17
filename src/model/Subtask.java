@@ -23,6 +23,30 @@ public class Subtask extends Task {
         this.epicId = epicId;
     }
 
+    // sprint-9: удобный конструктор для тестов/инициализации c временем и длительностью
+    public Subtask(
+            String title,
+            String description,
+            Status status,
+            Duration duration,
+            LocalDateTime startTime,
+            int epicId) { // sprint-9
+        super(title, description, status);          // sprint-9
+        this.duration = duration;                    // sprint-9
+        this.startTime = startTime;                  // sprint-9
+        this.epicId = epicId;                        // sprint-9
+    }
+
+    // sprint-9: сокращённый вариант — статус по умолчанию NEW
+    public Subtask(
+            String title,
+            String description,
+            Duration duration,
+            LocalDateTime startTime,
+            int epicId) { // sprint-9
+        this(title, description, Status.NEW, duration, startTime, epicId); // sprint-9
+    }
+
     public int getEpicId() {
         return epicId;
     }
@@ -51,8 +75,7 @@ public class Subtask extends Task {
                 CsvUtils.escape(description),
                 dur,
                 st,
-                String.valueOf(epicId)
-        );
+                String.valueOf(epicId));
     }
 
     // Удобные fluent-сеттеры

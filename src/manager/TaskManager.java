@@ -1,63 +1,54 @@
 package manager;
 
+import java.util.List;
 import model.Epic;
 import model.Subtask;
 import model.Task;
 
-import java.util.List;
-
-/**
- * Интерфейс менеджера задач.
- * (из Sprint 7 + NEW методы Sprint 8)
- */
+/** Интерфейс менеджера задач (Sprint 7 + новые методы Sprint 8). */
 public interface TaskManager {
 
-    /* ===================== Создание ===================== */
-    int addNewTask(Task task);
+  // Создание
+  int addNewTask(Task task);
 
-    int addNewEpic(Epic epic);
+  int addNewEpic(Epic epic);
 
-    int addNewSubtask(Subtask subtask);
+  int addNewSubtask(Subtask subtask);
 
-    /* ===================== Обновление ===================== */
-    void updateTask(Task task);
+  // Обновление
+  void updateTask(Task task);
 
-    void updateEpic(Epic epic);
+  void updateEpic(Epic epic);
 
-    void updateSubtask(Subtask subtask);
+  void updateSubtask(Subtask subtask);
 
-    /* ===================== Удаление ===================== */
-    void removeTask(int id);
+  // Удаление
+  void removeTask(int id);
 
-    void removeEpic(int id);
+  void removeEpic(int id);
 
-    void removeSubtask(int id);
+  void removeSubtask(int id);
 
-    /* ===================== Получение (одна) ===================== */
-    Task getTask(int id);
+  // Получение (одна)
+  Task getTask(int id);
 
-    Epic getEpic(int id);
+  Epic getEpic(int id);
 
-    Subtask getSubtask(int id);
+  Subtask getSubtask(int id);
 
-    /* ===================== Получение (списки) ===================== */
-    List<Task> getTasks();
+  // Получение (списки)
+  List<Task> getTasks();
 
-    List<Epic> getEpics();
+  List<Epic> getEpics();
 
-    List<Subtask> getSubtasks();
+  List<Subtask> getSubtasks();
 
-    List<Subtask> getEpicSubtasks(int epicId);
+  List<Subtask> getEpicSubtasks(int epicId);
 
-    /* ===================== История ===================== */
-    List<Task> getHistory();
+  // История
+  List<Task> getHistory();
 
-    /* ===================== Prioritized (sprint-8) ===================== */
-
-    /**
-     * NEW (sprint-8): задачи и подзадачи в порядке приоритета по startTime.
-     * Эпики не включаем (их время расчётное).
-     * Задачи без startTime не учитываются.
-     */
-    List<Task> getPrioritizedTasks();
+  // Prioritized (sprint-8)
+  /** Задачи и подзадачи по приоритету startTime; эпики не включаются. */
+  List<Task> getPrioritizedTasks();
 }

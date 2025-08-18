@@ -1,15 +1,19 @@
 package http;
 
+import static http.HttpUtil.isNewId;
+import static http.HttpUtil.parseIdOrNull;
+
 import com.google.gson.Gson;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import exceptions.NotFoundException;
 import exceptions.TaskValidationException;
 import java.io.IOException;
 import java.net.URI;
 import manager.TaskManager;
 import model.Task;
 
-/** /tasks и /tasks/{id} — sprint 9 */
+/** /tasks и /tasks/{id} */
 public class TasksHandler extends BaseHttpHandler implements HttpHandler {
 
   private final TaskManager manager;
@@ -43,16 +47,15 @@ public class TasksHandler extends BaseHttpHandler implements HttpHandler {
       return;
     }
     if (parts.length == 3) { // /tasks/{id}
-      Integer id = parseId(parts[2]);
+      Integer id = parseIdOrNull(parts[2]);
       if (id == null) {
         sendNotFound(exchange, "incorrect id");
         return;
       }
-      Task task = manager.getTask(id);
-      if (task == null) {
-        sendNotFound(exchange, "task " + id + " not found");
-      } else {
-        sendOk(exchange, gson.toJson(task));
+      try {
+        sendOk(exchange, gson.toJson(manager.getTask(id)));
+      } catch (NotFoundException nf) {
+        sendNotFound(exchange, nf.getMessage());
       }
       return;
     }
@@ -69,22 +72,14 @@ public class TasksHandler extends BaseHttpHandler implements HttpHandler {
     try {
       if (isNewId(incoming.getId())) {
         manager.addNewTask(incoming);
-        sendCreated(exchange);
       } else {
-        // sprint9: обновляем ТОЛЬКО существующую задачу — иначе 404
-        Integer id = incoming.getId(); // sprint9
-        if (manager.getTask(id) == null) { // sprint9
-          sendNotFound(exchange, "task " + id + " not found"); // sprint9
-          return; // sprint9
-        }
-        manager.updateTask(incoming);
-        sendCreated(exchange);
+        manager.updateTask(incoming); // NotFound → 404
       }
+      sendCreated(exchange);
     } catch (TaskValidationException overlap) {
       sendHasOverlaps(exchange, overlap.getMessage());
-    } catch (IllegalArgumentException | java.util.NoSuchElementException e) { // sprint9
-      // На случай если менеджер бросит «не найдено» — отдаём 404, а не 500. // sprint9
-      sendNotFound(exchange, e.getMessage() == null ? "not found" : e.getMessage()); // sprint9
+    } catch (NotFoundException nf) {
+      sendNotFound(exchange, nf.getMessage());
     }
   }
 
@@ -93,28 +88,16 @@ public class TasksHandler extends BaseHttpHandler implements HttpHandler {
       sendNotFound(exchange, "incorrect path");
       return;
     }
-    Integer id = parseId(parts[2]);
+    Integer id = parseIdOrNull(parts[2]);
     if (id == null) {
       sendNotFound(exchange, "incorrect id");
       return;
     }
-    if (manager.getTask(id) == null) {
-      sendNotFound(exchange, "task " + id + " not found");
-      return;
-    }
-    manager.removeTask(id);
-    sendOk(exchange, "\"deleted\"");
-  }
-
-  private boolean isNewId(Integer id) {
-    return id == null || id == 0;
-  }
-
-  private Integer parseId(String s) {
     try {
-      return Integer.parseInt(s);
-    } catch (NumberFormatException e) {
-      return null;
+      manager.removeTask(id); // NotFound → 404
+      sendOk(exchange, "\"deleted\"");
+    } catch (NotFoundException nf) {
+      sendNotFound(exchange, nf.getMessage());
     }
   }
 }

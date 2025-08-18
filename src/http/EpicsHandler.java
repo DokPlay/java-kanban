@@ -1,18 +1,18 @@
-package http; // sprint 9
+package http;
+
+import static http.HttpUtil.isNewId;
+import static http.HttpUtil.parseIdOrNull;
 
 import com.google.gson.Gson;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import exceptions.NotFoundException;
 import java.io.IOException;
 import java.net.URI;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 import manager.TaskManager;
 import model.Epic;
-import model.Subtask;
 
-/** /epics, /epics/{id}, /epics/{id}/subtasks — sprint 9 */
+/** /epics, /epics/{id}, /epics/{id}/subtasks */
 public class EpicsHandler extends BaseHttpHandler implements HttpHandler {
 
   private final TaskManager manager;
@@ -47,38 +47,31 @@ public class EpicsHandler extends BaseHttpHandler implements HttpHandler {
       return;
     }
     if (parts.length == 3) { // /epics/{id}
-      Integer id = parseId(parts[2]);
+      Integer id = parseIdOrNull(parts[2]);
       if (id == null) {
         sendNotFound(exchange, "incorrect id");
         return;
       }
-      Epic epic = manager.getEpic(id);
-      if (epic == null) {
-        sendNotFound(exchange, "epic " + id + " not found");
-      } else {
-        sendOk(exchange, gson.toJson(epic));
+      try {
+        sendOk(exchange, gson.toJson(manager.getEpic(id)));
+      } catch (NotFoundException nf) {
+        sendNotFound(exchange, nf.getMessage());
       }
       return;
     }
     if (parts.length == 4 && "subtasks".equals(parts[3])) { // /epics/{id}/subtasks
-      Integer epicId = parseId(parts[2]);
+      Integer epicId = parseIdOrNull(parts[2]);
       if (epicId == null) {
         sendNotFound(exchange, "incorrect id");
         return;
       }
-      Epic epic = manager.getEpic(epicId);
-      if (epic == null) {
-        sendNotFound(exchange, "epic " + epicId + " not found");
-        return;
+      try {
+        // вызов getEpic для явного 404, затем выдаём список
+        manager.getEpic(epicId);
+        sendOk(exchange, gson.toJson(manager.getEpicSubtasks(epicId)));
+      } catch (NotFoundException nf) {
+        sendNotFound(exchange, nf.getMessage());
       }
-
-      // sprint9: безопасная выборка, если у эпика subtaskIds == null
-      List<Subtask> subs =
-          manager.getSubtasks().stream()
-              .filter(st -> Objects.equals(st.getEpicId(), epicId))
-              .collect(Collectors.toList());
-
-      sendOk(exchange, gson.toJson(subs));
       return;
     }
     sendNotFound(exchange, "incorrect path");
@@ -94,20 +87,12 @@ public class EpicsHandler extends BaseHttpHandler implements HttpHandler {
     try {
       if (isNewId(epic.getId())) {
         manager.addNewEpic(epic);
-        sendCreated(exchange);
       } else {
-        // sprint9: обновляем ТОЛЬКО существующий эпик — иначе 404
-        Integer id = epic.getId(); // sprint9
-        if (manager.getEpic(id) == null) { // sprint9
-          sendNotFound(exchange, "epic " + id + " not found"); // sprint9
-          return; // sprint9
-        }
-        manager.updateEpic(epic);
-        sendCreated(exchange);
+        manager.updateEpic(epic); // NotFound → 404
       }
-    } catch (IllegalArgumentException | java.util.NoSuchElementException e) { // sprint9
-      // На случай, если менеджер бросит «не найдено», возвращаем 404, а не 500. // sprint9
-      sendNotFound(exchange, e.getMessage() == null ? "not found" : e.getMessage()); // sprint9
+      sendCreated(exchange);
+    } catch (NotFoundException nf) {
+      sendNotFound(exchange, nf.getMessage());
     }
   }
 
@@ -116,28 +101,16 @@ public class EpicsHandler extends BaseHttpHandler implements HttpHandler {
       sendNotFound(exchange, "incorrect path");
       return;
     }
-    Integer id = parseId(parts[2]);
+    Integer id = parseIdOrNull(parts[2]);
     if (id == null) {
       sendNotFound(exchange, "incorrect id");
       return;
     }
-    if (manager.getEpic(id) == null) {
-      sendNotFound(exchange, "epic " + id + " not found");
-      return;
-    }
-    manager.removeEpic(id);
-    sendOk(exchange, "\"deleted\"");
-  }
-
-  private boolean isNewId(Integer id) {
-    return id == null || id == 0;
-  }
-
-  private Integer parseId(String s) {
     try {
-      return Integer.parseInt(s);
-    } catch (NumberFormatException e) {
-      return null;
+      manager.removeEpic(id); // NotFound → 404
+      sendOk(exchange, "\"deleted\"");
+    } catch (NotFoundException nf) {
+      sendNotFound(exchange, nf.getMessage());
     }
   }
 }
